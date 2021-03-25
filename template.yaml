@@ -1,0 +1,252 @@
+---
+kind: "Template"
+apiVersion: "template.openshift.io/v1"
+metadata:
+  name: "docs-openshift-com"
+  annotations:
+    openshift.io/display-name: "docs.openshift.com/docs.okd.io websites"
+    description: "Packages up public documentation from https://github.com/openshift/openshift-docs and serves the website content"
+    tags: "ruby,asciibinder"
+    iconClass: "icon-shadowman"
+    template.openshift.io/provider-display-name: "Red Hat, Inc."
+message: "The following service(s) have been created in your project: ${NAME}."
+labels:
+  template: "docs-openshift-com"
+objects:
+  - kind: "Service"
+    apiVersion: "v1"
+    metadata:
+      name: "${NAME}"
+      annotations:
+        description: "Exposes and load balances the frontend application pods for the deployment"
+      labels:
+        app: "${NAME}"
+    spec:
+      ports:
+        - name: "http"
+          port: 8080
+          targetPort: 8080
+      selector:
+        name: "${NAME}"
+
+  - kind: "Route"
+    apiVersion: "route.openshift.io/v1"
+    metadata:
+      annotations:
+        kubernetes.io/tls-acme: "true"
+      name: "${NAME}"
+      labels:
+        app: "${NAME}"
+    spec:
+      host: "${APPLICATION_DOMAIN}"
+      to:
+        kind: "Service"
+        name: "${NAME}"
+        weight: 1
+      port:
+        targetPort: "http"
+
+  - kind: "ImageStream"
+    apiVersion: "image.openshift.io/v1"
+    metadata:
+      name: "${NAME}"
+      annotations:
+        description: "Keeps track of changes in the ${NAME} application image"
+      labels:
+        app: "${NAME}"
+
+  - kind: "ImageStream"
+    apiVersion: "image.openshift.io/v1"
+    metadata:
+      name: "docs-builder"
+      annotations:
+        description: "Builds and serves OpenShift docs"
+      labels:
+        app: "${NAME}"
+    spec:
+      lookupPolicy:
+        local: false
+      tags:
+        - name: latest
+          annotations: null
+          from:
+            kind: DockerImage
+            name: 'quay.io/openshift-cs/docs-builder:latest'
+          reference: true
+          generation: 1
+          importPolicy: {}
+          referencePolicy:
+            type: Source
+
+  - kind: "BuildConfig"
+    apiVersion: "build.openshift.io/v1"
+    metadata:
+      name: "${NAME}"
+      annotations:
+        description: "Defines how to build ${NAME}"
+      labels:
+        app: "${NAME}"
+    spec:
+      nodeSelector:
+      source:
+        type: "Git"
+        git:
+          uri: "${SOURCE_REPO}"
+          ref: "main"
+      strategy:
+        type: "Source"
+        sourceStrategy:
+          from:
+            kind: "ImageStreamTag"
+            name: "docs-builder:latest"
+      output:
+        to:
+          kind: "ImageStreamTag"
+          name: "${NAME}:latest"
+      triggers:
+        - type: "ImageChange"
+        - type: "ConfigChange"
+        - type: "GitHub"
+          github:
+            secret: "${GITHUB_WEBHOOK_SECRET}"
+
+  - kind: "DeploymentConfig"
+    apiVersion: "apps.openshift.io/v1"
+    metadata:
+      name: "${NAME}"
+      annotations:
+        description: "Defines how to deploy the ${APPLICATION_DOMAIN} domain"
+      labels:
+        app: "${NAME}"
+    spec:
+      strategy:
+        type: "Rolling"
+        rollingParams:
+          timeoutSeconds: 600
+          maxUnavailable: 0%
+          maxSurge: 100%
+        resources: {}
+        activeDeadlineSeconds: 21600
+      triggers:
+        - type: "ImageChange"
+          imageChangeParams:
+            automatic: true
+            containerNames:
+              - "${NAME}"
+            from:
+              kind: "ImageStreamTag"
+              name: "${NAME}:latest"
+        - type: "ConfigChange"
+      replicas: 3
+      test: false
+      selector:
+        name: "${NAME}"
+      template:
+        metadata:
+          name: "${NAME}"
+          labels:
+            name: "${NAME}"
+            app: "${NAME}"
+        spec:
+          containers:
+            - name: "${NAME}"
+              ports:
+                - containerPort: 8080
+              readinessProbe:
+                timeoutSeconds: 5
+                initialDelaySeconds: ${{READINESS_DELAY}}
+                httpGet:
+                  path: "/${HEALTHCHECK_PATH}"
+                  port: 8080
+              env:
+                - name: PACKAGE
+                  value: "${PACKAGE}"
+                - name: REPO
+                  value: "${BUILD_REPO}"
+              livenessProbe:
+                timeoutSeconds: 5
+                initialDelaySeconds: ${{READINESS_DELAY}}
+                periodSeconds: 10
+                failureThreshold: 18
+                httpGet:
+                  path: "/${HEALTHCHECK_PATH}"
+                  port: 8080
+              resources:
+                requests:
+                  cpu: "${CPU_REQUEST}"
+                  memory: "${MEMORY_REQUEST}"
+                limits:
+                  cpu: "${CPU_LIMIT}"
+                  memory: "${MEMORY_LIMIT}"
+
+parameters:
+  - name: "NAME"
+    displayName: "Application name"
+    description: "The name assigned to all of the application components defined in this template."
+    required: true
+    value: "docs-openshift-com"
+
+  - name: "PACKAGE"
+    displayName: "Package Name (community|commercial)"
+    description: "The type of documents to build (commercial vs community)."
+    required: true
+    value: "commercial"
+
+  - name: "APPLICATION_DOMAIN"
+    displayName: "Application Hostname"
+    description: "The exposed hostname that will route to the httpd service for content."
+    value: ""
+
+  - name: "HEALTHCHECK_PATH"
+    displayName: "URI path to a known, working web page"
+    description: "The URI path to a known, working web page for testing liveness and readiness probes. Exclude leading '/'"
+    required: true
+    value: "index.html"
+
+  - name: "READINESS_DELAY"
+    displayName: "Readiness Delay Seconds"
+    description: "The number of seconds to wait for the pod to become ready (6.5m default). MUST stay < 10m"
+    required: true
+    value: "390"
+
+  - name: "SOURCE_REPO"
+    displayName: "Git Repository URL for the build scripts"
+    description: "The URL of the repository with your application source code."
+    required: true
+    value: "https://github.com/openshift-cs/docs-builder.git"
+
+  - name: "BUILD_REPO"
+    displayName: "Git Repository URL for the upstream documentation content"
+    description: "The URL of the repository with your application source code."
+    required: true
+    value: "https://github.com/openshift/openshift-docs.git"
+
+  - name: "CPU_REQUEST"
+    displayName: "CPU Request"
+    description: "Requested amount of CPU the httpd container will use."
+    required: true
+    value: "50m"
+
+  - name: "CPU_LIMIT"
+    displayName: "CPU Limit"
+    description: "Maximum amount of CPU the httpd container can use."
+    required: true
+    value: "1"
+
+  - name: "MEMORY_REQUEST"
+    displayName: "Memory Request"
+    description: "Requested amount of memory the httpd container will use."
+    required: true
+    value: "100Mi"
+
+  - name: "MEMORY_LIMIT"
+    displayName: "Memory Limit"
+    description: "Maximum amount of memory the httpd container can use."
+    required: true
+    value: "512Mi"
+
+  - name: "GITHUB_WEBHOOK_SECRET"
+    displayName: "GitHub Webhook Secret"
+    description: "A secret string used to configure the GitHub webhook."
+    generate: "expression"
+    from: "[a-zA-Z0-9]{40}"

@@ -1,0 +1,105 @@
+#!/bin/bash
+
+set -e
+shopt -s dotglob
+
+## SET DEFAULT ENVIRONMENT VARIABLE
+PACKAGE="${PACKAGE:-commercial}"
+REPO="${REPO:-https://github.com/openshift/openshift-docs.git}"
+
+
+## CLONE REPO
+echo "---> Cloning docs from $REPO"
+# Clone OpenShift Docs into current directory
+git clone --depth 1 $REPO .docs_source
+cd .docs_source
+# it's necessary to enforce a * ref so that all branches are referenced
+sed -i 's%fetch = +refs.*%fetch = +refs/heads/*:refs/remotes/origin/*%' .git/config
+git fetch --all --quiet
+for remote in $(cat _distro_map.yml | yq eval ".*.branches | keys | .[]" - | sort | uniq)
+do
+    git checkout $remote 2>/dev/null || git checkout --force --track remotes/origin/$remote
+done
+
+
+## DOWNLOAD MINISHIFT CONTENT WHERE APPROPRIATE
+if [ "$PACKAGE" = "community" ]
+then
+    git checkout enterprise-3.11
+    echo "---> Installing Minishift content ..."
+    mkdir minishift
+    cd minishift
+    if wget http://minishift.io/minishift-adoc.tar
+    then
+        tar -xvf minishift-adoc.tar --strip 1
+        cat _topic_map.yml >> ../_topic_map.yml
+        rm minishift-adoc.tar
+        cd ..
+        git add minishift/
+        git commit -am "Minishift build-time commit"
+    else
+        echo "WARNING: Could not retrieve minishift-adoc.tar"
+        cd ..
+        rmdir minishift
+    fi
+fi
+
+
+## ASCIIBINDER PACKAGING
+echo "---> Packaging $PACKAGE docs content"
+git checkout master
+asciibinder package --site=$PACKAGE 2>/dev/null
+
+
+## MOVING FILES INTO THE RIGHT PLACES
+mv _package/${PACKAGE}/* ..
+git checkout master
+mkdir ../httpd-cfg
+mv .s2i/httpd-cfg/01-${PACKAGE}.conf ../httpd-cfg/
+mv 404-${PACKAGE}.html ../404.html
+cd ..
+rm -rf .docs_source
+
+# Optionally install .htaccess files to gate access to staging content
+# Define a HTACCESS_DIRS environment variable with ':' delimited directories
+# Reference directory like "container-platform/3.10:latest" for docs.openshift.com/container-platform/3.10 and docs.okd.io/latest
+if [[ ! -z "$HTACCESS_DIRS" ]]
+then
+    echo "---> Creating .htaccess/.htpasswd files"
+    IFS=':'; directories=($HTACCESS_DIRS); unset IFS;
+    for dir in "${directories[@]}"
+    do
+        echo "--->     Adding .htpasswd protection to $dir"
+        # brute force separate password for container-platform-ocp distribution
+        if [ $dir = "container-platform-ocp/4.3" ] || \
+           [ $dir = "container-platform-ocp/4.4" ] || \
+           [ $dir = "container-platform-ocp/4.7" ]
+        then
+          echo "--->     separate .htpasswd protection to $dir"
+          echo -e 'AuthType Basic\nAuthName "Access to the stage docs"\nAuthUserFile /opt/app-root/src/.htpasswdocp\nRequire valid-user' > $dir/.htaccess
+          echo 'openshift:$apr1$c41fpuxh$jHe/W0gYLffn6501Cx2TS/' > .htpasswdocp
+        else
+          echo -e 'AuthType Basic\nAuthName "Access to the stage docs"\nAuthUserFile /opt/app-root/src/.htpasswd\nRequire valid-user' > $dir/.htaccess
+        fi
+    done
+    echo 'redhat:$apr1$1HYe8rB6$6pa5OVd01quYUYl8ymyqK0' > .htpasswd
+fi
+
+# Optionally restrict crawlers from indexing the content
+# Define a DISALLOW_CRAWL_DIRS environment variable with ':' delimited directories
+# Reference directory like "container-platform/3.10:clatest" for docs.openshift.com/container-platform/3.10 and docs.okd.io/latest
+if [[ ! -z "$DISALLOW_CRAWL_DIRS" ]]; then
+    echo "---> Creating robot.txt file for disallowing crawlers"
+    echo "User-agent: *" > robots.txt
+    IFS=':'; directories=($DISALLOW_CRAWL_DIRS); unset IFS;
+    for dir in "${directories[@]}"; do
+        echo "--->     Creating robots.txt to prevent crawling dir $dir"
+        echo "Disallow: /$dir" >> robots.txt
+    done
+fi
+
+ls -la
+
+export HTTPD_RUN_BY_S2I=1
+
+exec run-httpd $@
