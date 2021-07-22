@@ -20,7 +20,8 @@ $ oc new-app template.yaml \
     -p NAME=docs-openshift-com \
     -p PACKAGE=commercial \
     -p APPLICATION_DOMAIN=docs.openshift.com \
-    -p BUILD_REPO=https://github.com/openshift/openshift-docs.git
+    -p BUILD_REPO=https://github.com/openshift/openshift-docs.git \
+    -p BUILD_BRANCH=main
 ```
 
 
@@ -32,5 +33,6 @@ $ oc new-app template.yaml \
     -p PACKAGE=community \
     -p APPLICATION_DOMAIN=docs.okd.io \
     -p BUILD_REPO=https://github.com/openshift/openshift-docs.git \
+    -p BUILD_BRANCH=main \
     -p READINESS_DELAY=90
 ```
