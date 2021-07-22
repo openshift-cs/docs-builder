@@ -140,6 +140,8 @@ objects:
                   value: "${PACKAGE}"
                 - name: REPO
                   value: "${BUILD_REPO}"
+                - name: BRANCH
+                  value: "${BUILD_BRANCH}"
               livenessProbe:
                 timeoutSeconds: 5
                 initialDelaySeconds: ${{READINESS_DELAY}}
@@ -197,6 +199,12 @@ parameters:
     description: "The URL of the repository with your application source code."
     required: true
     value: "https://github.com/openshift/openshift-docs.git"
+
+  - name: "BUILD_BRANCH"
+    displayName: "Git Repository branch for the upstream documentation content"
+    description: "The branch name of the repository with your application source code."
+    required: true
+    value: "main"
 
   - name: "CPU_REQUEST"
     displayName: "CPU Request"
