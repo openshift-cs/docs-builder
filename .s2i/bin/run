@@ -71,13 +71,11 @@ then
     for dir in "${directories[@]}"
     do
         echo "--->     Adding .htpasswd protection to $dir"
-        # brute force separate password for container-platform-ocp distribution
-        if [ $dir = "container-platform-ocp/4.3" ] || \
-           [ $dir = "container-platform-ocp/4.4" ] || \
-           [ $dir = "container-platform-ocp/4.7" ]
+        # add a separate password for early access docs
+        if [[ $dir == *"container-platform-ocp"* ]];
         then
           echo "--->     separate .htpasswd protection to $dir"
-          echo -e 'AuthType Basic\nAuthName "Access to the stage docs"\nAuthUserFile /opt/app-root/src/.htpasswdocp\nRequire valid-user' > $dir/.htaccess
+          echo -e 'AuthType Basic\nAuthName "Access to the early access docs"\nAuthUserFile /opt/app-root/src/.htpasswdocp\nRequire valid-user' > $dir/.htaccess
           echo 'openshift:$apr1$c41fpuxh$jHe/W0gYLffn6501Cx2TS/' > .htpasswdocp
         else
           echo -e 'AuthType Basic\nAuthName "Access to the stage docs"\nAuthUserFile /opt/app-root/src/.htpasswd\nRequire valid-user' > $dir/.htaccess
