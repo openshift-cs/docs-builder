@@ -54,7 +54,7 @@ RUN rpmkeys --import file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7 && \
   chown -R 1001:0 ${APP_ROOT} && \
   chmod -R ug+rwx ${APP_ROOT}
 
-# Directory with the sources is set as the working directory so all STI scripts
+# Directory with all the sources is set as the working directory so all STI scripts
 # can execute relative to this path.
 WORKDIR ${HOME}
 
