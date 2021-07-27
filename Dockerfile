@@ -5,8 +5,8 @@ EXPOSE 8080
 ENV RUBY_SCL="rh-ruby27" \
     PATH="/opt/rh/rh-ruby27/root/usr/local/bin:/opt/rh/rh-ruby27/root/usr/bin:/opt/app-root/src/bin:/opt/app-root/bin:/opt/app-root:$PATH" \
     LD_LIBRARY_PATH="/opt/rh/rh-ruby27/root/usr/local/lib64:/opt/rh/rh-ruby27/root/usr/lib64" \
-    X_SCLS="rh-ruby27" \
     MANPATH="/opt/rh/rh-ruby27/root/usr/local/share/man:/opt/rh/rh-ruby27/root/usr/share/man:" \
+    X_SCLS="rh-ruby27" \
     XDG_DATA_DIRS="/opt/rh/rh-ruby27/root/usr/local/share:/opt/rh/rh-ruby27/root/usr/share:/usr/local/share:/usr/share" \
     PKG_CONFIG_PATH="/opt/rh/rh-ruby27/root/usr/local/lib64/pkgconfig:/opt/rh/rh-ruby27/root/usr/lib64/pkgconfig" \
     INSTALL_PKGS="autoconf automake gcc-c++ make git libcurl-devel openssl-devel wget libffi-devel rh-ruby27 rh-ruby27-ruby-devel \
