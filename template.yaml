@@ -75,7 +75,7 @@ objects:
         sourceStrategy:
           from:
             kind: DockerImage
-            name: 'quay.io/openshift-cs/docs-builder:latest'
+            name: '${BUILDER_IMAGE}'
       output:
         to:
           kind: "ImageStreamTag"
@@ -205,6 +205,12 @@ parameters:
     description: "The branch name of the repository with your application source code."
     required: true
     value: "main"
+
+  - name: "BUILDER_IMAGE"
+    displayName: "The s2i builder image used for deploying documentation"
+    description: "The URL for an s2i builder image used for deployment documentation."
+    required: true
+    value: "quay.io/openshift-cs/docs-builder:latest"
 
   - name: "CPU_REQUEST"
     displayName: "CPU Request"
