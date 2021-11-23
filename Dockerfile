@@ -3,10 +3,10 @@ FROM quay.io/centos7/s2i-core-centos7
 EXPOSE 8080
 
 ENV RUBY_SCL="rh-ruby27" \
-    PATH="/opt/rh/rh-ruby27/root/usr/local/bin:/opt/rh/rh-ruby27/root/usr/bin:/opt/app-root/src/bin:/opt/app-root/bin:/opt/app-root:$PATH" \
+    PATH="/opt/rh/rh-ruby27/root/usr/local/bin:/opt/rh/rh-ruby27/root/usr/bin:/opt/app-root/src/bin:/opt/app-root/bin:$PATH" \
     LD_LIBRARY_PATH="/opt/rh/rh-ruby27/root/usr/local/lib64:/opt/rh/rh-ruby27/root/usr/lib64" \
-    MANPATH="/opt/rh/rh-ruby27/root/usr/local/share/man:/opt/rh/rh-ruby27/root/usr/share/man:" \
     X_SCLS="rh-ruby27" \
+    MANPATH="/opt/rh/rh-ruby27/root/usr/local/share/man:/opt/rh/rh-ruby27/root/usr/share/man:" \
     XDG_DATA_DIRS="/opt/rh/rh-ruby27/root/usr/local/share:/opt/rh/rh-ruby27/root/usr/share:/usr/local/share:/usr/share" \
     PKG_CONFIG_PATH="/opt/rh/rh-ruby27/root/usr/local/lib64/pkgconfig:/opt/rh/rh-ruby27/root/usr/lib64/pkgconfig" \
     INSTALL_PKGS="autoconf automake gcc-c++ make git libcurl-devel openssl-devel wget libffi-devel rh-ruby27 rh-ruby27-ruby-devel \
@@ -29,9 +29,9 @@ ENV RUBY_SCL="rh-ruby27" \
     APP_ROOT=/opt/app-root \
     HOME=/opt/app-root/src \
     PLATFORM="el7" \
-    BASH_ENV=/opt/app-root/scl_enable \
-    ENV=/opt/app-root/scl_enable \
-    PROMPT_COMMAND=". /opt/app-root/scl_enable"
+    BASH_ENV=/opt/app-root/etc/scl_enable \
+    ENV=/opt/app-root/etc/scl_enable \
+    PROMPT_COMMAND=". /opt/app-root/etc/scl_enable"
 
 LABEL io.openshift.expose-services="8080:http"
 
@@ -39,8 +39,10 @@ LABEL io.openshift.expose-services="8080:http"
 COPY ./.s2i/bin/ $STI_SCRIPTS_PATH
 COPY ./root/ /
 
+# the basic run command
+# 23 Nov - 4:51 PM AEST
 RUN rpmkeys --import file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7 && \
-  yum install -y centos-release-scl epel-release && \
+  yum install -y centos-release-scl && \
   yum install -y --setopt=tsflags=nodocs $INSTALL_PKGS && \
   gem install ascii_binder && \
   rpm -V $INSTALL_PKGS && \
