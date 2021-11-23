@@ -40,6 +40,8 @@ COPY ./.s2i/bin/ $STI_SCRIPTS_PATH
 COPY ./root/ /
 
 # force trigger: 23/Nov/ 4:53 AEST
+LABEL description="Builds for docs"
+
 RUN rpmkeys --import file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7 && \
   yum install -y centos-release-scl epel-release && \
   yum install -y --setopt=tsflags=nodocs $INSTALL_PKGS && \
