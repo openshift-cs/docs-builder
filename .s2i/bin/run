@@ -77,6 +77,11 @@ then
           echo "--->     separate .htpasswd protection to $dir"
           echo -e 'AuthType Basic\nAuthName "Access to the early access docs"\nAuthUserFile /opt/app-root/src/.htpasswdocp\nRequire valid-user' > $dir/.htaccess
           echo 'openshift:$apr1$c41fpuxh$jHe/W0gYLffn6501Cx2TS/' > .htpasswdocp
+        if [[ $dir == *"container-platform-dpu"* ]];
+        then
+          echo "--->     separate .htpasswd protection to $dir"
+          echo -e 'AuthType Basic\nAuthName "Access to the early access docs"\nAuthUserFile /opt/app-root/src/.htpasswddpu\nRequire valid-user' > $dir/.htaccess
+          echo 'openshift:$apr1$F4nGVPma$AS3t4ffTt9TSUQC9eKlzx.' > .htpasswddpu
         else
           echo -e 'AuthType Basic\nAuthName "Access to the stage docs"\nAuthUserFile /opt/app-root/src/.htpasswd\nRequire valid-user' > $dir/.htaccess
         fi
@@ -86,7 +91,7 @@ fi
 
 # Optionally restrict crawlers from indexing the content
 # Define a DISALLOW_CRAWL_DIRS environment variable with ':' delimited directories
-# Reference directory like "container-platform/3.10:clatest" for docs.openshift.com/container-platform/3.10 and docs.okd.io/latest
+# Reference directory like "container-platform/3.10:latest" for docs.openshift.com/container-platform/3.10 and docs.okd.io/latest
 if [[ ! -z "$DISALLOW_CRAWL_DIRS" ]]; then
     echo "---> Creating robot.txt file for disallowing crawlers"
     echo "User-agent: *" > robots.txt
