@@ -77,7 +77,7 @@ then
           echo "--->     separate .htpasswd protection to $dir"
           echo -e 'AuthType Basic\nAuthName "Access to the early access docs"\nAuthUserFile /opt/app-root/src/.htpasswdocp\nRequire valid-user' > $dir/.htaccess
           echo 'openshift:$apr1$c41fpuxh$jHe/W0gYLffn6501Cx2TS/' > .htpasswdocp
-        if [[ $dir == *"container-platform-dpu"* ]];
+        elif [[ $dir == *"container-platform-dpu"* ]];
         then
           echo "--->     separate .htpasswd protection to $dir"
           echo -e 'AuthType Basic\nAuthName "Access to the early access docs"\nAuthUserFile /opt/app-root/src/.htpasswddpu\nRequire valid-user' > $dir/.htaccess
