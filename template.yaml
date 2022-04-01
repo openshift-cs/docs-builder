@@ -54,6 +54,9 @@ objects:
         description: "Keeps track of changes in the ${NAME} application image"
       labels:
         app: "${NAME}"
+    spec:
+      lookupPolicy:
+        local: true
 
   - kind: "BuildConfig"
     apiVersion: "build.openshift.io/v1"
@@ -93,26 +96,21 @@ objects:
       name: "${NAME}"
       annotations:
         description: "Defines how to deploy the ${APPLICATION_DOMAIN} domain"
+        alpha.image.policy.openshift.io/resolve-names: '*'
       labels:
         app: "${NAME}"
     spec:
       strategy:
         type: "Rolling"
         rollingParams:
-          timeoutSeconds: 600
+          updatePeriodSeconds: 1
+          intervalSeconds: 1
+          timeoutSeconds: 1800
           maxUnavailable: 0%
           maxSurge: 100%
         resources: {}
-        activeDeadlineSeconds: 21600
+        activeDeadlineSeconds: 3600
       triggers:
-        - type: "ImageChange"
-          imageChangeParams:
-            automatic: true
-            containerNames:
-              - "${NAME}"
-            from:
-              kind: "ImageStreamTag"
-              name: "${NAME}:latest"
         - type: "ConfigChange"
       replicas: 3
       test: false
@@ -127,6 +125,7 @@ objects:
         spec:
           containers:
             - name: "${NAME}"
+              image: "${NAME}:latest"
               ports:
                 - containerPort: 8080
               readinessProbe:
@@ -143,10 +142,10 @@ objects:
                 - name: BRANCH
                   value: "${BUILD_BRANCH}"
               livenessProbe:
-                timeoutSeconds: 5
+                timeoutSeconds: 10
                 initialDelaySeconds: ${{READINESS_DELAY}}
-                periodSeconds: 10
-                failureThreshold: 18
+                periodSeconds: 30
+                failureThreshold: 20
                 httpGet:
                   path: "/${HEALTHCHECK_PATH}"
                   port: 8080
@@ -157,6 +156,117 @@ objects:
                 limits:
                   cpu: "${CPU_LIMIT}"
                   memory: "${MEMORY_LIMIT}"
+
+  - kind: Role
+    apiVersion: rbac.authorization.k8s.io/v1
+    metadata:
+      name: "${NAME}-rollout-role"
+    rules:
+    - apiGroups:
+      - ""
+      - apps.openshift.io
+      resources:
+      - deploymentconfigs
+      - deploymentconfigs/scale
+      verbs:
+      - create
+      - delete
+      - deletecollection
+      - get
+      - list
+      - patch
+      - update
+      - watch
+    - apiGroups:
+      - ""
+      - apps.openshift.io
+      resources:
+      - deploymentconfigs/log
+      - deploymentconfigs/status
+      verbs:
+      - get
+      - list
+      - watch
+    - apiGroups:
+      - ""
+      resources:
+      - replicationcontrollers
+      - replicationcontrollers/scale
+      - replicationcontrollers/status
+      verbs:
+      - get
+      - list
+      - watch
+    - apiGroups:
+      - ""
+      resources:
+      - replicationcontrollers
+      - replicationcontrollers/scale
+      verbs:
+      - create
+      - delete
+      - deletecollection
+      - get
+      - list
+      - patch
+      - update
+      - watch
+
+  - kind: ServiceAccount
+    apiVersion: v1
+    metadata:
+      name: "${NAME}-rollout-sa"
+
+  - kind: RoleBinding
+    apiVersion: rbac.authorization.k8s.io/v1
+    metadata:
+      name: "${NAME}-rollout-binding"
+    roleRef:
+      apiGroup: rbac.authorization.k8s.io
+      kind: Role
+      name: "${NAME}-rollout-role"
+    subjects:
+    - kind: ServiceAccount
+      name: "${NAME}-rollout-sa"
+
+  - kind: "CronJob"
+    apiVersion: "batch/v1"
+    metadata:
+      name: "${NAME}-build-trigger"
+      annotations:
+        description: "CronJob used to trigger ${APPLICATION_DOMAIN} builds periodically"
+      labels:
+        app: "${NAME}"
+    spec:
+      failedJobsHistoryLimit: 5
+      successfulJobsHistoryLimit: 3
+      concurrencyPolicy: Forbid
+      schedule: "${DEPLOY_SCHEDULE}"
+      jobTemplate:
+        spec:
+          activeDeadlineSeconds: 900
+          template:
+            spec:
+              serviceAccountName: "${NAME}-rollout-sa"
+              restartPolicy: Never
+              containers:
+              - name: "${NAME}-build-trigger"
+                image: image-registry.openshift-image-registry.svc:5000/openshift/cli:latest
+                imagePullPolicy: Always
+                env:
+                  - name: DEPLOYMENT_TARGET
+                    value: "${NAME}"
+                command:
+                - /bin/bash
+                - -c
+                - |
+                  # ensure we fail if something exits non-zero
+                  set -o errexit
+                  set -o nounset
+
+                  oc rollout latest dc/$DEPLOYMENT_TARGET
+
+                  exit 0
 
 parameters:
   - name: "NAME"
@@ -184,9 +294,9 @@ parameters:
 
   - name: "READINESS_DELAY"
     displayName: "Readiness Delay Seconds"
-    description: "The number of seconds to wait for the pod to become ready (8m default). MUST stay < 10m"
+    description: "The number of seconds to wait for the pod to become ready (10m default). MUST stay < 20m"
     required: true
-    value: "480"
+    value: "600"
 
   - name: "SOURCE_REPO"
     displayName: "Git Repository URL for the build scripts"
@@ -211,6 +321,12 @@ parameters:
     description: "The URL for an s2i builder image used for deployment documentation."
     required: true
     value: "quay.io/openshift-cs/docs-builder:latest"
+
+  - name: "DEPLOY_SCHEDULE"
+    displayName: "Deployment cronjob schedule"
+    description: "A CronTab formatted frequency to specify how often a new deployment will rollout (defaults to 0 and 30 of each hour)"
+    required: true
+    value: "0,30 * * * *"
 
   - name: "CPU_REQUEST"
     displayName: "CPU Request"
