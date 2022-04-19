@@ -126,6 +126,7 @@ objects:
           containers:
             - name: "${NAME}"
               image: "${NAME}:latest"
+              imagePullPolicy: Always
               ports:
                 - containerPort: 8080
               readinessProbe:
