@@ -1,10 +1,11 @@
 FROM registry.access.redhat.com/ubi8/ruby-27
 
+ENV LANG=en_US.UTF-8
+
 USER root
-RUN gem install listen -v 3.0.8
-RUN gem install ascii_binder
-RUN asciibinder --version
-RUN yum clean all
+
+RUN gem install listen:3.0.8 ascii_binder && \
+    yum clean all
 
 LABEL url="http://www.asciibinder.org" \
       summary="a documentation system built on Asciidoctor" \
@@ -13,5 +14,4 @@ LABEL url="http://www.asciibinder.org" \
           -v `pwd`:/docs:z \
           IMAGE"
 
-ENV LANG=en_US.UTF-8
 WORKDIR /docs

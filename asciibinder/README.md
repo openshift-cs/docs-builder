@@ -5,11 +5,11 @@ installing asciibinder directly. To build your local asciidoc content, run one o
 following commands from the asciidoc source folder:
 
 ```
-podman run --rm -it -v `pwd`:/docs:Z quay.io/openshift-cs/docs-builder/asciibinder asciibinder build
+podman run --rm -it -v `pwd`:/docs:Z quay.io/openshift-cs/asciibinder asciibinder build
 ```
 
 To build a specific distro, for example, `openshift-enterprise` run:
 
 ```
-podman run --rm -it -v `pwd`:/docs:Z quay.io/openshift-cs/docs-builder/asciibinder asciibinder build -d openshift-enterprise
+podman run --rm -it -v `pwd`:/docs:Z quay.io/openshift-cs/asciibinder asciibinder build -d openshift-enterprise
 ```
