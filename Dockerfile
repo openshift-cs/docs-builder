@@ -39,7 +39,7 @@ LABEL io.openshift.expose-services="8080:http"
 COPY ./.s2i/bin/ $STI_SCRIPTS_PATH
 COPY ./root/ /
 
-# force trigger: 23/Nov/ 4:53 AEST
+# force trigger: Jan 23 2023
 LABEL description="Builds for docs"
 
 RUN rpmkeys --import file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7 && \
