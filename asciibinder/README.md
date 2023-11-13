@@ -44,10 +44,18 @@ Pull from the `:multiarch` tag
 $ podman run --rm -it -v `pwd`:/docs:Z quay.io/openshift-cs/asciibinder:multiarch asciibinder build
 ```
 
+or
+
+```
+$ podman run --rm -it -v `pwd`:/docs:Z quay.io/openshift-cs/openshift-docs-build:multiarch python3 build_for_portal.py --distro openshift-enterprise --product "OpenShift Container Platform" --version 4.13 --no-upstream-fetch && python3 makeBuild.py
+```
+
+
 ## Building
 
 ```
 $ git clone https://github.com/openshift-cs/docs-builder.git
 $ cd docs-builder/asciibinder
-$ docker buildx build --push --platform linux/amd64,linux/arm64 --tag quay.io/openshift-cs/asciibinder:multiarch .
+$ docker buildx build --push --platform linux/amd64,linux/arm64 --tag quay.io/openshift-cs/asciibinder:multiarch -f asciibinder.Dockerfile .
+$ docker buildx build --push --platform linux/amd64,linux/arm64 --tag quay.io/openshift-cs/openshift-docs-build:multiarch -f openshift-docs-build.Dockerfile .
 ```
