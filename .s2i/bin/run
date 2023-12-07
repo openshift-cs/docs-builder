@@ -7,7 +7,7 @@ shopt -s dotglob
 PACKAGE="${PACKAGE:-commercial}"
 REPO="${REPO:-https://github.com/openshift/openshift-docs.git}"
 BRANCH="${BRANCH:-main}"
-CONVERTER=$(pwd)/_converters/custom-html5-converter.rb
+CONVERTER=$(pwd)/.docs_source/_converters/custom-html5-converter.rb
 CUSTOM_CONVERTER="${CUSTOM_CONVERTER:-$CONVERTER}"
 
 
@@ -52,10 +52,10 @@ fi
 echo "---> Packaging $PACKAGE docs content"
 git checkout $BRANCH
 if test -f ${CUSTOM_CONVERTER}; then
-    echo "----> Custom converter build"
+    echo "----> Building with custom HTML converter"
     ruby -r ${CUSTOM_CONVERTER} $(type -p asciibinder) package --site=$PACKAGE 2>/dev/null
 else
-    echo "----> Bundled converer build"
+    echo "----> Building with default converter"
     asciibinder package --site=$PACKAGE 2>/dev/null
 fi
 
