@@ -31,7 +31,8 @@ The `quay.io/openshift-cs/openshift-docs-build` contains asciibinder, and a prei
 From the root of the openshift-docs repo, run the following, or similar:
 
 ```
-$ podman run --rm -it -v `pwd`:/openshift-docs-build:Z quay.io/openshift-cs/openshift-docs-build python3 build_for_portal.py --distro openshift-enterprise --product "OpenShift Container Platform" --version 4.13 --no-upstream-fetch && python3 makeBuild.py
+$ podman run --rm -it -v `pwd`:/openshift-docs-build:Z quay.io/openshift-cs/openshift-docs-build sh -c 'python build_for_portal.py --distro openshift-enterprise --product "OpenShift Container Platform" --version 4.13 --no-upstream-fetch && python makeBuild.py'
+
 ```
 
 # Multi-architecture Image
